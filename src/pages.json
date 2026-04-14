@@ -1,0 +1,136 @@
+{
+	"pages": [
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "学思践悟",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/record/record",
+			"style": {
+				"navigationBarTitleText": "成长历程",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/mine/mine",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/success/success",
+			"style": {
+				"navigationBarTitleText": "习读感悟",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/mine/protocol",
+			"style": {
+				"navigationBarTitleText": "协议详情",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/plan/plan",
+			"style": {
+				"navigationBarTitleText": "学习计划",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/reading/index",
+			"style": {
+				"navigationBarTitleText": "经典著作",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/ai/index",
+			"style": {
+				"navigationBarTitleText": "AI 助手",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/reading/article",
+			"style": {
+				"navigationBarTitleText": "阅读",
+				"navigationBarBackgroundColor": "#c41e3a",
+				"navigationBarTextStyle": "white"
+			}
+		}
+	],
+	"tabBar": {
+		"color": "#7a7a7a",
+		"selectedColor": "#c41e3a",
+		"backgroundColor": "#ffffff",
+		"borderStyle": "white",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "学思",
+				"iconPath": "static/tab-home.png",
+				"selectedIconPath": "static/tab-home-active.png"
+			},
+			{
+				"pagePath": "pages/reading/index",
+				"text": "著作",
+				"iconPath": "static/tab-book.png",
+				"selectedIconPath": "static/tab-book-active.png"
+			},
+			{
+				"pagePath": "pages/ai/index",
+				"text": "助手",
+				"iconPath": "static/tab-list.png",
+				"selectedIconPath": "static/tab-list-active.png"
+			},
+			{
+				"pagePath": "pages/record/record",
+				"text": "足迹",
+				"iconPath": "static/tab-list.png",
+				"selectedIconPath": "static/tab-list-active.png"
+			},
+			{
+				"pagePath": "pages/mine/mine",
+				"text": "我的",
+				"iconPath": "static/tab-mine.png",
+				"selectedIconPath": "static/tab-mine-active.png"
+			}
+		]
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "学思践悟",
+		"navigationBarBackgroundColor": "#c41e3a",
+		"backgroundColor": "#faf9f6"
+	}
+}
