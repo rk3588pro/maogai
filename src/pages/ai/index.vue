@@ -6,9 +6,12 @@
       <text class="hero-subtitle">围绕课程知识、理论理解和学习表达进行问答，不代写违规内容。</text>
     </view>
 
-    <view class="tips-card">
-      <text class="tips-title">可以这样问</text>
-      <view class="prompt-list">
+    <view class="tips-card" :class="{ collapsed: tipsCollapsed }">
+      <view class="tips-header" @click="tipsCollapsed = !tipsCollapsed">
+        <text class="tips-title">💡 可以这样问</text>
+        <text class="tips-toggle">{{ tipsCollapsed ? '展开' : '收起' }}</text>
+      </view>
+      <view v-if="!tipsCollapsed" class="prompt-list">
         <view
           v-for="item in quickPrompts"
           :key="item"
@@ -31,7 +34,10 @@
         >
           <view class="avatar">{{ item.role === 'assistant' ? 'AI' : '我' }}</view>
           <view class="bubble">
-            <text class="bubble-text">{{ item.content }}</text>
+            <text v-if="item.role === 'user'" class="bubble-text">{{ item.content }}</text>
+            <view v-else class="markdown-body">
+              <rich-text :nodes="renderMarkdown(item.content)"></rich-text>
+            </view>
           </view>
         </view>
 
@@ -46,7 +52,6 @@
 
     <view class="toolbar">
       <button class="ghost-btn" @click="resetConversation">清空对话</button>
-      <text class="toolbar-hint">预设提示词已内置在后端接口中</text>
     </view>
 
     <view class="composer">
@@ -89,6 +94,7 @@ const messages = ref(loadMessages())
 const inputText = ref('')
 const loading = ref(false)
 const scrollIntoView = ref('')
+const tipsCollapsed = ref(false)
 
 function loadMessages() {
   try {
@@ -117,6 +123,7 @@ function scrollToBottom(targetId) {
 
 function usePrompt(text) {
   inputText.value = text
+  tipsCollapsed.value = true // 点击后自动收起
 }
 
 function resetConversation() {
@@ -124,6 +131,33 @@ function resetConversation() {
   persistMessages()
   uni.showToast({ title: '已清空', icon: 'success' })
   scrollToBottom('msg-0')
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function renderMarkdown(content) {
+  let html = escapeHtml(content || '')
+
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
+    return `<pre style="background:#f8f1e8;padding:12px;border-radius:10px;white-space:pre-wrap;word-break:break-all;margin:8px 0;"><code>${code.trim()}</code></pre>`
+  })
+
+  html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>')
+  html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>')
+  html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>')
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  html = html.replace(/`([^`]+)`/g, '<code style="background:#f4efe6;padding:2px 6px;border-radius:6px;">$1</code>')
+  html = html.replace(/^- (.*)$/gm, '<div class="md-li">• $1</div>')
+  html = html.replace(/^\d+\. (.*)$/gm, '<div class="md-li">$1</div>')
+  html = html.replace(/\n/g, '<br>')
+
+  return `<div>${html}</div>`
 }
 
 async function sendMessage() {
@@ -182,43 +216,46 @@ async function sendMessage() {
 
 <style lang="scss" scoped>
 .page {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(circle at top right, rgba(212, 175, 55, 0.12), transparent 35%),
     linear-gradient(180deg, #f7f1e6 0%, #faf9f6 24%, #f4efe6 100%);
   padding: 24rpx;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .hero-card {
   background: linear-gradient(135deg, #7b0f1a 0%, #c41e3a 58%, #d4af37 140%);
   border-radius: 28rpx;
-  padding: 34rpx 30rpx;
+  padding: 24rpx 28rpx;
   color: #fff;
   box-shadow: 0 16rpx 40rpx rgba(123, 15, 26, 0.18);
 }
 
 .hero-kicker {
   display: block;
-  font-size: 22rpx;
-  letter-spacing: 3rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
   text-transform: uppercase;
   opacity: 0.8;
 }
 
 .hero-title {
   display: block;
-  margin-top: 12rpx;
-  font-size: 42rpx;
+  margin-top: 8rpx;
+  font-size: 34rpx;
   font-weight: 700;
 }
 
 .hero-subtitle {
   display: block;
-  margin-top: 14rpx;
-  font-size: 25rpx;
-  line-height: 1.7;
-  opacity: 0.92;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  opacity: 0.85;
 }
 
 .tips-card {
@@ -227,12 +264,24 @@ async function sendMessage() {
   backdrop-filter: blur(12rpx);
   border: 1rpx solid rgba(196, 30, 58, 0.08);
   border-radius: 24rpx;
-  padding: 24rpx;
+  padding: 18rpx 24rpx;
+  transition: all 0.3s ease;
+}
+
+.tips-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tips-toggle {
+  font-size: 22rpx;
+  color: #9a2334;
+  opacity: 0.7;
 }
 
 .tips-title {
-  display: block;
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: #7b0f1a;
 }
@@ -255,7 +304,8 @@ async function sendMessage() {
 }
 
 .chat-panel {
-  height: 760rpx;
+  flex: 1;
+  min-height: 0;
   margin-top: 20rpx;
   background: rgba(255, 255, 255, 0.72);
   border-radius: 26rpx;
@@ -314,6 +364,31 @@ async function sendMessage() {
   white-space: pre-wrap;
 }
 
+/* AI 回复的 Markdown 样式微调 */
+.markdown-body {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #333;
+}
+
+:deep(.markdown-body h1),
+:deep(.markdown-body h2),
+:deep(.markdown-body h3) {
+  color: #7b0f1a;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 16rpx 0 8rpx;
+}
+
+:deep(.markdown-body strong) {
+  color: #7b0f1a;
+  font-weight: 700;
+}
+
+:deep(.markdown-body em) {
+  font-style: italic;
+}
+
 .message-row.user .bubble-text {
   color: #fff;
 }
@@ -347,13 +422,6 @@ async function sendMessage() {
   border: none;
 }
 
-.toolbar-hint {
-  flex: 1;
-  text-align: right;
-  font-size: 22rpx;
-  color: #8a8175;
-}
-
 .composer {
   margin-top: 18rpx;
   background: rgba(255, 255, 255, 0.92);
@@ -363,6 +431,7 @@ async function sendMessage() {
   gap: 18rpx;
   align-items: flex-end;
   box-shadow: 0 10rpx 26rpx rgba(0, 0, 0, 0.04);
+  margin-bottom: env(safe-area-inset-bottom);
 }
 
 .composer-input {

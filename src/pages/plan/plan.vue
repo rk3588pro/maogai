@@ -126,7 +126,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getPlanGoals, savePlanGoals, calculateProgress } from './planUtils'
+import { onShow } from '@dcloudio/uni-app'
+import request from '../../api/request'
+import { getPlanGoals, savePlanGoals, calculateProgress, savePunchRecords } from './planUtils'
 
 const goals = ref({
   weeklyGoal: 5,
@@ -223,9 +225,23 @@ function saveGoal() {
   closeEditPopup()
 }
 
-function loadData() {
+async function syncRemoteRecords() {
+  try {
+    const res = await request({ url: '/api/checkin/records?page=1&pageSize=100', method: 'GET' })
+    if (res?.data?.code === 0) {
+      savePunchRecords(res.data.data.list || [])
+    }
+  } catch (e) {
+    console.warn('同步打卡记录失败，使用本地缓存计算计划进度')
+  }
+}
+
+async function loadData() {
   // 加载目标设置
   goals.value = getPlanGoals()
+
+  // 优先同步后端打卡记录，失败时自动使用本地缓存
+  await syncRemoteRecords()
   
   // 计算当前进度
   const progress = calculateProgress()
@@ -237,20 +253,10 @@ function loadData() {
 onMounted(() => {
   loadData()
 })
-</script>
 
-<script>
-// 页面显示时刷新数据（从其他页面返回时）
-export default {
-  onShow() {
-    // 使用 setTimeout 确保在 Vue 更新周期后执行
-    setTimeout(() => {
-      if (this.loadData) {
-        this.loadData()
-      }
-    }, 100)
-  }
-}
+onShow(() => {
+  loadData()
+})
 </script>
 
 <style lang="scss" scoped>

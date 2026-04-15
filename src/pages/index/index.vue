@@ -116,7 +116,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import request from '../../api/request'
-import { getPlanGoals, calculateProgress } from '../plan/planUtils'
+import { getPlanGoals, calculateProgress, savePunchRecords, upsertPunchRecord } from '../plan/planUtils'
 
 const todayChecked = ref(false)
 const todayCheckTime = ref('')
@@ -183,13 +183,24 @@ async function initData() {
       streakDays.value = statsRes.data.data.streakDays || 0
       totalCount.value = statsRes.data.data.monthCount || 0 // 暂时用月统计代替总计
     }
+
+    // 3. 同步后端打卡记录，用于学习计划进度计算
+    await syncRemoteRecords()
   } catch (e) {
     console.warn('API加载失败，尝试读取本地缓存')
     loadLocalFallback()
   }
   
-  // 3. 加载学习计划数据
+  // 4. 加载学习计划数据
   loadPlanData()
+}
+
+async function syncRemoteRecords() {
+  const recordsRes = await request({ url: '/api/checkin/records?page=1&pageSize=100', method: 'GET' })
+  if (recordsRes?.data?.code === 0) {
+    const records = recordsRes.data.data.list || []
+    savePunchRecords(records)
+  }
 }
 
 function loadPlanData() {
@@ -232,9 +243,10 @@ async function submitPunch() {
     if (res?.data?.code === 0) {
       todayChecked.value = true
       todayCheckTime.value = res.data.data.time
+      upsertPunchRecord(res.data.data)
       
       // 刷新统计和学习计划
-      initData()
+      await initData()
       loadPlanData()
       
       closePunchPopup()

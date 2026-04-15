@@ -55,15 +55,6 @@
       >
         登 录
       </button>
-
-      <button
-        class="btn-guest"
-        hover-class="btn-guest--hover"
-        hover-stay-time="100"
-        @click="enterOfflineMode"
-      >
-        先进入看看
-      </button>
     </view>
 
     <!-- 辅助链接 -->
@@ -124,7 +115,7 @@ async function onLogin() {
       }
       uni.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => {
-        uni.reLaunch({ url: '/pages/index/index' })
+        uni.switchTab({ url: '/pages/index/index' })
       }, 600)
     } else {
       const msg = res && res.data && res.data.message ? res.data.message : '登录失败'
@@ -132,24 +123,8 @@ async function onLogin() {
     }
   } catch (err) {
     console.error('login error', err)
-    uni.showModal({
-      title: '网络异常',
-      content: '当前无法连接服务器。你可以先进入首页浏览本地内容，稍后再登录。',
-      confirmText: '先进入',
-      cancelText: '重试',
-      confirmColor: '#c41e3a',
-      success: (res) => {
-        if (res.confirm) {
-          enterOfflineMode()
-        }
-      }
-    })
+    uni.showToast({ title: '网络错误，请检查网络或尚未启动服务', icon: 'none', duration: 3000 })
   }
-}
-
-function enterOfflineMode() {
-  try { uni.setStorageSync('guest_mode', '1') } catch (e) {}
-  uni.reLaunch({ url: '/pages/index/index' })
 }
 
 function onForgotPassword() {

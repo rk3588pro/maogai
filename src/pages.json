@@ -110,8 +110,8 @@
 			{
 				"pagePath": "pages/ai/index",
 				"text": "助手",
-				"iconPath": "static/tab-list.png",
-				"selectedIconPath": "static/tab-list-active.png"
+				"iconPath": "static/ai.png",
+				"selectedIconPath": "static/ai-active.png"
 			},
 			{
 				"pagePath": "pages/record/record",

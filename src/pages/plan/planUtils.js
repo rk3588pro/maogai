@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY = 'learning_plan_goals'
+const PUNCH_RECORDS_KEY = 'punch_records'
 
 /**
  * 获取学习计划目标
@@ -50,9 +51,11 @@ export function savePlanGoals(goals) {
  * 计算当前进度
  * @returns {Object} { weekCount, monthCount, streakDays }
  */
-export function calculateProgress() {
+export function calculateProgress(recordsOverride) {
   try {
-    const records = uni.getStorageSync('punch_records') || []
+    const records = Array.isArray(recordsOverride)
+      ? recordsOverride
+      : getLocalPunchRecords()
     
     // 计算本周打卡数
     const weekCount = getWeekCheckinCount(records)
@@ -75,6 +78,74 @@ export function calculateProgress() {
       monthCount: 0,
       streakDays: 0
     }
+  }
+}
+
+export function getLocalPunchRecords() {
+  try {
+    const records = uni.getStorageSync(PUNCH_RECORDS_KEY) || []
+    return normalizeRecords(records)
+  } catch (e) {
+    console.warn('读取本地打卡记录失败', e)
+    return []
+  }
+}
+
+export function savePunchRecords(records) {
+  try {
+    uni.setStorageSync(PUNCH_RECORDS_KEY, normalizeRecords(records))
+    return true
+  } catch (e) {
+    console.error('保存本地打卡记录失败', e)
+    return false
+  }
+}
+
+export function upsertPunchRecord(record) {
+  const records = getLocalPunchRecords()
+  const normalized = normalizeRecord(record)
+  if (!normalized || !normalized.date) return records
+
+  const nextRecords = records.filter((item) => item.date !== normalized.date)
+  nextRecords.push(normalized)
+  savePunchRecords(nextRecords)
+  return nextRecords
+}
+
+function normalizeRecords(records) {
+  if (!Array.isArray(records)) return []
+  return records
+    .map(normalizeRecord)
+    .filter((record) => record && record.date)
+}
+
+function normalizeRecord(record) {
+  if (!record) return null
+  const date = formatDateKey(record.date || record.createdAt || record.checkAt)
+  if (!date) return null
+
+  return {
+    ...record,
+    date,
+    time: record.time || ''
+  }
+}
+
+function formatDateKey(value = new Date()) {
+  try {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value
+    }
+
+    const date = value instanceof Date ? value : new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  } catch (e) {
+    return ''
   }
 }
 
@@ -102,8 +173,8 @@ function getWeekCheckinCount(records) {
   let count = 0
   records.forEach(record => {
     try {
-      const recordDate = new Date(record.date)
-      if (recordDate >= monday && recordDate <= sunday) {
+      const recordDate = parseDateKey(record.date)
+      if (recordDate && recordDate >= monday && recordDate <= sunday) {
         count++
       }
     } catch (e) {
@@ -127,8 +198,8 @@ function getMonthCheckinCount(records) {
   let count = 0
   records.forEach(record => {
     try {
-      const recordDate = new Date(record.date)
-      if (recordDate.getFullYear() === year && recordDate.getMonth() === month) {
+      const recordDate = parseDateKey(record.date)
+      if (recordDate && recordDate.getFullYear() === year && recordDate.getMonth() === month) {
         count++
       }
     } catch (e) {
@@ -147,25 +218,19 @@ function calculateStreakDays(records) {
   
   try {
     // 去重并按日期排序（从新到旧）
-    const uniqueDates = [...new Set(records.map(r => {
-      try {
-        return new Date(r.date).toISOString().slice(0, 10)
-      } catch (e) {
-        return null
-      }
-    }).filter(d => d !== null))]
+    const uniqueDates = [...new Set(records.map(r => formatDateKey(r.date)).filter(Boolean))]
     
     const sortedDates = uniqueDates.sort().reverse()
     if (sortedDates.length === 0) return 0
     
-    const today = new Date().toISOString().slice(0, 10)
+    const today = formatDateKey()
     let streak = 0
     let checkDate = new Date()
     
     // 如果今天没打卡，检查昨天（允许断签一天）
     if (sortedDates[0] !== today) {
       checkDate.setDate(checkDate.getDate() - 1)
-      const yesterday = checkDate.toISOString().slice(0, 10)
+      const yesterday = formatDateKey(checkDate)
       // 如果昨天也没打卡，连续天数为0
       if (sortedDates[0] !== yesterday) {
         return 0
@@ -174,7 +239,7 @@ function calculateStreakDays(records) {
     
     // 从今天（或昨天）往前推，计算连续天数
     for (let i = 0; i < sortedDates.length; i++) {
-      const expectedDate = checkDate.toISOString().slice(0, 10)
+      const expectedDate = formatDateKey(checkDate)
       if (sortedDates[i] === expectedDate) {
         streak++
         checkDate.setDate(checkDate.getDate() - 1)
@@ -188,6 +253,14 @@ function calculateStreakDays(records) {
     console.error('计算连续天数失败', e)
     return 0
   }
+}
+
+function parseDateKey(value) {
+  const key = formatDateKey(value)
+  if (!key) return null
+
+  const [year, month, day] = key.split('-').map(Number)
+  return new Date(year, month - 1, day)
 }
 
 /**
@@ -208,6 +281,9 @@ export function checkGoalCompletion() {
 export default {
   getPlanGoals,
   savePlanGoals,
+  getLocalPunchRecords,
+  savePunchRecords,
+  upsertPunchRecord,
   calculateProgress,
   checkGoalCompletion
 }

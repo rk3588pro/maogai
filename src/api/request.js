@@ -2,6 +2,7 @@
 import { BASE_URL } from '../main'
 
 const _BASE = typeof BASE_URL === 'string' ? BASE_URL.replace(/\/+$/, '') : BASE_URL
+let redirectingToLogin = false
 
 /**
  * options: { url, method = 'GET', data, header }
@@ -44,8 +45,22 @@ export function request(options) {
             uni.removeStorageSync('token')
           } catch (e) {}
           try {
-            uni.reLaunch({ url: '/pages/login/login' })
-          } catch (e) {}
+            const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+            const currentRoute = pages.length ? pages[pages.length - 1].route : ''
+            if (!redirectingToLogin && currentRoute !== 'pages/login/login') {
+              redirectingToLogin = true
+              uni.reLaunch({
+                url: '/pages/login/login',
+                complete: () => {
+                  setTimeout(() => {
+                    redirectingToLogin = false
+                  }, 300)
+                }
+              })
+            }
+          } catch (e) {
+            redirectingToLogin = false
+          }
           return reject(res)
         }
 
