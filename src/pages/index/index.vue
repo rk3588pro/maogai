@@ -181,7 +181,7 @@ async function initData() {
     const statsRes = await request({ url: '/api/checkin/stats', method: 'GET' })
     if (statsRes?.data?.code === 0) {
       streakDays.value = statsRes.data.data.streakDays || 0
-      totalCount.value = statsRes.data.data.monthCount || 0 // 暂时用月统计代替总计
+      totalCount.value = statsRes.data.data.totalCount || totalCount.value
     }
 
     // 3. 同步后端打卡记录，用于学习计划进度计算
@@ -200,6 +200,7 @@ async function syncRemoteRecords() {
   if (recordsRes?.data?.code === 0) {
     const records = recordsRes.data.data.list || []
     savePunchRecords(records)
+    totalCount.value = recordsRes.data.data.total || records.length
   }
 }
 
@@ -210,6 +211,7 @@ function loadPlanData() {
 
 function loadLocalFallback() {
   const records = uni.getStorageSync('punch_records') || []
+  totalCount.value = records.length
   const todayKey = new Date().toISOString().slice(0, 10)
   const found = records.find(r => r.date === todayKey)
   if (found) {

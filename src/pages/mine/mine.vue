@@ -2,10 +2,12 @@
   <view class="page">
     <!-- 个人信息头部 -->
     <view class="user-card">
-      <view class="avatar-wrap">
+      <view class="avatar-wrap" @click="chooseAvatar">
         <view class="avatar">
-          <text class="avatar-icon">★</text>
+          <image v-if="userInfo.avatarUrl" class="avatar-img" :src="userInfo.avatarUrl" mode="aspectFill" />
+          <text v-else class="avatar-icon">★</text>
         </view>
+        <text class="avatar-edit">更换头像</text>
       </view>
       <view class="info-wrap">
         <view class="nickname-row" @click="editProfile">
@@ -31,6 +33,10 @@
 
     <!-- 功能列表 -->
     <view class="menu-list">
+      <view class="menu-item" @click="chooseAvatar">
+        <text class="menu-text">上传头像</text>
+        <text class="arrow">></text>
+      </view>
       <view class="menu-item" @click="editProfile">
         <text class="menu-text">修改个人资料</text>
         <text class="arrow">></text>
@@ -69,11 +75,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import request from '../../api/request'
 
 const userInfo = ref({
   nickname: '',
-  signature: ''
+  signature: '',
+  avatarUrl: ''
 })
 
 const stats = ref({
@@ -105,7 +113,52 @@ async function fetchRemoteStats() {
       stats.value.streakDays = res.data.data.streakDays || 0
       stats.value.totalCount = res.data.data.totalCount || stats.value.totalCount
     }
+
+    const recordsRes = await request({ url: '/api/checkin/records?page=1&pageSize=1', method: 'GET' })
+    if (recordsRes?.data?.code === 0) {
+      stats.value.totalCount = recordsRes.data.data.total || 0
+    }
   } catch (e) {}
+}
+
+function saveUserProfile(nextInfo = userInfo.value) {
+  userInfo.value = { ...nextInfo }
+  uni.setStorageSync('user_profile', JSON.stringify(userInfo.value))
+}
+
+function persistAvatarPath(tempPath) {
+  return new Promise((resolve) => {
+    // H5 下 saveFile 可能不可用，失败时直接使用临时地址；小程序下 saveFile 可提高持久性。
+    if (!uni.saveFile) {
+      resolve(tempPath)
+      return
+    }
+
+    uni.saveFile({
+      tempFilePath: tempPath,
+      success: (res) => resolve(res.savedFilePath || tempPath),
+      fail: () => resolve(tempPath)
+    })
+  })
+}
+
+function chooseAvatar() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const tempPath = res.tempFilePaths && res.tempFilePaths[0]
+      if (!tempPath) return
+
+      const avatarUrl = await persistAvatarPath(tempPath)
+      saveUserProfile({ ...userInfo.value, avatarUrl })
+      uni.showToast({ title: '头像已更新', icon: 'success' })
+    },
+    fail: () => {
+      uni.showToast({ title: '未选择图片', icon: 'none' })
+    }
+  })
 }
 
 function editProfile() {
@@ -118,8 +171,7 @@ function closeEditPopup() {
 }
 
 function saveProfile() {
-  userInfo.value = { ...tempInfo.value }
-  uni.setStorageSync('user_profile', JSON.stringify(userInfo.value))
+  saveUserProfile({ ...userInfo.value, ...tempInfo.value })
   uni.showToast({ title: '修改成功', icon: 'success' })
   closeEditPopup()
 }
@@ -148,6 +200,11 @@ function showVersion() {
 }
 
 onMounted(() => {
+  loadData()
+  fetchRemoteStats()
+})
+
+onShow(() => {
   loadData()
   fetchRemoteStats()
 })
@@ -180,11 +237,27 @@ onMounted(() => {
   justify-content: center;
   border: 4rpx solid rgba(255, 255, 255, 0.3);
   margin-right: 30rpx;
+  overflow: hidden;
 }
 
 .avatar-icon {
   font-size: 60rpx;
   color: #fff;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.avatar-edit {
+  display: block;
+  margin-top: 10rpx;
+  margin-right: 30rpx;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
 }
 
 .nickname-row {

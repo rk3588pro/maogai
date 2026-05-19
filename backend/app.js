@@ -150,6 +150,9 @@ app.get('/api/checkin/stats', authenticateToken, async (req, res) => {
     const [monthRows] = await pool.query('SELECT COUNT(*) as count FROM checkins WHERE user_id = ? AND DATE_FORMAT(date, "%Y-%m") = ?', [req.user.id, currentMonth]);
     const monthCount = monthRows[0].count;
 
+    const [totalRows] = await pool.query('SELECT COUNT(*) as count FROM checkins WHERE user_id = ?', [req.user.id]);
+    const totalCount = totalRows[0].count;
+
     // 计算连续打卡天数 (简单逻辑：查询该用户所有打卡日期，按日期倒序排)
     const [dates] = await pool.query('SELECT date FROM checkins WHERE user_id = ? ORDER BY date DESC', [req.user.id]);
     let streakDays = 0;
@@ -175,7 +178,7 @@ app.get('/api/checkin/stats', authenticateToken, async (req, res) => {
       }
     }
 
-    res.json({ code: 0, message: "success", data: { streakDays, monthCount } });
+    res.json({ code: 0, message: "success", data: { streakDays, monthCount, totalCount } });
   } catch (error) {
     console.error(error);
     res.json({ code: 500, message: "服务器错误", data: null });
